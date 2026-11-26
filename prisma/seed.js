@@ -4,6 +4,12 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  const existingCount = await prisma.institute.count();
+  if (existingCount > 0) {
+    console.log('Database already seeded. Skipping seed to preserve existing records.');
+    return;
+  }
+
   console.log('Seeding ExamOps database...');
 
   // Clean existing data
