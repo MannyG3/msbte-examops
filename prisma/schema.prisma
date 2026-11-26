@@ -1,0 +1,606 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------
+// TENANT & AUTH
+// ---------------------------------------------------------
+
+model Institute {
+  id             String    @id @default(cuid())
+  code           String    @unique // e.g., "0018", "0540"
+  name           String
+  region         String    // Mumbai, Pune, Nagpur, Chhatrapati Sambhaji Nagar, etc.
+  address        String
+  logoUrl        String?
+  principalName  String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  users             User[]
+  departments       Department[]
+  programmes        Programme[]
+  schemes           Scheme[]
+  rooms             Room[]
+  staff             Staff[]
+  students          Student[]
+  examSessions      ExamSession[]
+  auditLogs         AuditLog[]
+  templates         DocumentTemplate[]
+  externalExaminers ExternalExaminer[]
+  eligibilityRules  EligibilityRule[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  instituteId    String
+  email          String       @unique
+  passwordHash   String
+  name           String
+  phone          String?
+  role           String       @default("FACULTY") // COORDINATOR, PRINCIPAL, HOD, FACULTY, STUDENT
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  staff          Staff?
+  student        Student?
+  auditLogs      AuditLog[]
+
+  @@index([instituteId])
+}
+
+// ---------------------------------------------------------
+// MASTERS
+// ---------------------------------------------------------
+
+model Department {
+  id             String       @id @default(cuid())
+  instituteId    String
+  name           String
+  code           String       // e.g. "CO", "ME", "EE"
+  hodId          String?
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  programmes     Programme[]
+  staff          Staff[]
+
+  @@unique([instituteId, code])
+}
+
+model Programme {
+  id             String       @id @default(cuid())
+  instituteId    String
+  departmentId   String
+  name           String       // Computer Engineering
+  code           String       // CO
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  department     Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  courses        Course[]
+  students       Student[]
+
+  @@unique([instituteId, code])
+}
+
+model Scheme {
+  id             String       @id @default(cuid())
+  instituteId    String
+  name           String       // "K", "I"
+  startYear      Int
+  isActive       Boolean      @default(true)
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  courses        Course[]
+
+  @@unique([instituteId, name])
+}
+
+model Course {
+  id                String            @id @default(cuid())
+  programmeId       String
+  schemeId          String
+  code              String            // 311302, 22516
+  title             String            // e.g. "Programming in C", "Operating Systems"
+  abbreviation      String            // e.g. "PIC", "OSY"
+  semester          Int               // 1 to 6
+  paperDurationMins Int               @default(180) // 90, 180, 240
+  hasTheory         Boolean           @default(true)
+  hasPractical      Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+
+  programme         Programme         @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  scheme            Scheme            @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  assessmentHeads   AssessmentHead[]
+  studentCourses    StudentCourse[]
+  theoryPapers      TheoryPaper[]
+  classTests        ClassTest[]
+  practicalSlots    PracticalSlot[]
+  staffCourses      StaffCourse[]
+  attendanceRecords AttendanceRecord[]
+
+  @@unique([programmeId, schemeId, code])
+  @@index([code])
+}
+
+model AssessmentHead {
+  id             String             @id @default(cuid())
+  courseId       String
+  headType       String             // FA_TH, SA_TH, FA_PR, SA_PR, SLA
+  maxMarks       Int                // e.g. 30, 70, 25, 50
+  minMarks       Int                // e.g. 10, 28, 10, 20
+  tag            String             @default("INTERNAL") // INTERNAL (@), EXTERNAL (#), ONLINE (*#), INTERNAL_ONLINE (@$)
+  durationMins   Int?
+
+  course         Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  marks          Mark[]
+
+  @@unique([courseId, headType])
+}
+
+model Division {
+  id             String          @id @default(cuid())
+  programmeId    String
+  semester       Int
+  name           String          // A, B, C
+  academicYear   String          // 2026-2027
+
+  batches        Batch[]
+  students       Student[]
+  classTests     ClassTest[]
+  practicalSlots PracticalSlot[]
+
+  @@unique([programmeId, semester, name, academicYear])
+}
+
+model Batch {
+  id             String          @id @default(cuid())
+  divisionId     String
+  name           String          // A1, A2, A3
+
+  division       Division        @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  students       Student[]
+  practicalSlots PracticalSlot[]
+
+  @@unique([divisionId, name])
+}
+
+model Room {
+  id                 String              @id @default(cuid())
+  instituteId        String
+  name               String              // "Room 101", "Computer Lab 2"
+  building           String              // "Main Building", "Annex"
+  floor              Int                 // 0, 1, 2
+  benchCount         Int                 // e.g. 15 benches
+  seatsPerBench      Int                 @default(2) // 1 or 2 students per bench
+  totalCapacity      Int                 // benchCount * seatsPerBench
+  type               String              @default("CLASSROOM") // CLASSROOM, LAB
+  labEquipmentCount  Int?
+  isLocked           Boolean             @default(false)
+
+  institute          Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  seatingAllocations SeatingAllocation[]
+  supervisionDuties  SupervisionDuty[]
+  practicalSlots     PracticalSlot[]
+
+  @@unique([instituteId, name])
+}
+
+model Staff {
+  id                  String              @id @default(cuid())
+  instituteId         String
+  userId              String?             @unique
+  departmentId        String
+  name                String
+  email               String
+  phone               String?
+  designation         String              // Lecturer, HOD, Lab Tech
+  type                String              @default("TEACHING") // TEACHING, LAB_ASSISTANT, PEON
+  maxDutiesPerSession Int                 @default(10)
+  isActive            Boolean             @default(true)
+
+  institute          Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  user               User?               @relation(fields: [userId], references: [id])
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teachingCourses    StaffCourse[]
+  supervisionDuties  SupervisionDuty[]
+  swapRequestsMade   DutySwapRequest[]   @relation("RequesterStaff")
+  swapRequestsTarget DutySwapRequest[]   @relation("TargetStaff")
+  internalPracticals PracticalSlot[]     @relation("InternalExaminer")
+
+  @@unique([instituteId, email])
+}
+
+model StaffCourse {
+  id             String       @id @default(cuid())
+  staffId        String
+  courseId       String
+
+  staff          Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, courseId])
+}
+
+model Student {
+  id                 String              @id @default(cuid())
+  instituteId        String
+  userId             String?             @unique
+  programmeId        String
+  divisionId         String?
+  batchId            String?
+  enrollmentNo       String              // MSBTE 10-digit enrollment number
+  seatNo             String?             // MSBTE Hall ticket seat number (e.g. 124567)
+  rollNo             String              // Institute internal roll number (e.g. 26CO01)
+  name               String
+  semester           Int
+  status             String              @default("REGULAR") // REGULAR, DETAINED, PROMOTED
+  detentionReason    String?
+
+  institute          Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  user               User?               @relation(fields: [userId], references: [id])
+  programme          Programme           @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  division           Division?           @relation(fields: [divisionId], references: [id])
+  batch              Batch?              @relation(fields: [batchId], references: [id])
+  enrolledCourses    StudentCourse[]
+  marks              Mark[]
+  seatingAllocations SeatingAllocation[]
+  absenteeRecords    AbsenteeRecord[]
+  attendanceRecords  AttendanceRecord[]
+
+  @@unique([instituteId, enrollmentNo])
+  @@index([instituteId, seatNo])
+  @@index([divisionId])
+}
+
+model StudentCourse {
+  id             String               @id @default(cuid())
+  studentId      String
+  courseId       String
+  type           String               @default("REGULAR") // REGULAR, BACKLOG_ATKT
+  isEligible     Boolean              @default(true)
+  detentionNote  String?
+
+  student        Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course         Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+// ---------------------------------------------------------
+// EXAM SESSIONS & TIMETABLES
+// ---------------------------------------------------------
+
+model ExamSession {
+  id                     String                  @id @default(cuid())
+  instituteId            String
+  code                   String                  // e.g. "W26", "S27"
+  name                   String                  // "Winter 2026 Examination"
+  academicYear           String                  // "2026-2027"
+  practicalStartDate     DateTime
+  practicalEndDate       DateTime
+  sem1PracticalStartDate DateTime?
+  sem1PracticalEndDate   DateTime?
+  theoryStartDate        DateTime
+  theoryEndDate          DateTime
+  expectedResultDate     DateTime?
+  isCurrent              Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+
+  institute              Institute               @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  checklistItems         SessionPhaseChecklist[]
+  theoryPapers           TheoryPaper[]
+  classTests             ClassTest[]
+  practicalSlots         PracticalSlot[]
+  supervisionDuties      SupervisionDuty[]
+  absenteeRecords        AbsenteeRecord[]
+  resultImports          ResultImport[]
+  marks                  Mark[]
+
+  @@unique([instituteId, code])
+}
+
+model SessionPhaseChecklist {
+  id             String       @id @default(cuid())
+  sessionId      String
+  title          String       // e.g. "Class Test 2 Marks Complete"
+  phase          String       // "CLASS_TEST", "PRACTICAL", "THEORY", "RESULTS"
+  dueDate        DateTime
+  isCompleted    Boolean      @default(false)
+  ownerName      String?
+  completedAt    DateTime?
+
+  session        ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model TheoryPaper {
+  id                 String              @id @default(cuid())
+  sessionId          String
+  courseId           String
+  examDate           DateTime
+  slot               String              // MORNING or AFTERNOON
+  startTime          String              // "09:30 AM"
+  endTime            String              // "12:30 PM"
+  schemeString       String              // e.g. "CO-5-K", "ME-3-I"
+  parsedProgramme    String
+  parsedSemester     Int
+  parsedScheme       String
+  paperCode          String              // 315319
+  paperName          String
+
+  session            ExamSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  course             Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  seatingAllocations SeatingAllocation[]
+  absenteeRecords    AbsenteeRecord[]
+
+  @@index([sessionId, examDate, slot])
+}
+
+// ---------------------------------------------------------
+// SEATING ARRANGEMENT & THEORY OPS
+// ---------------------------------------------------------
+
+model SeatingAllocation {
+  id             String       @id @default(cuid())
+  paperId        String
+  studentId      String
+  roomId         String
+  benchNo        Int          // Bench 1, 2, ...
+  seatPosition   Int          // 1 (Left), 2 (Right)
+  version        Int          @default(1)
+  isLocked       Boolean      @default(false)
+
+  paper          TheoryPaper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  room           Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([paperId, studentId])
+  @@unique([roomId, paperId, benchNo, seatPosition])
+  @@index([roomId, paperId])
+}
+
+// ---------------------------------------------------------
+// SUPERVISION & EXAM DAY CONSOLE
+// ---------------------------------------------------------
+
+model SupervisionDuty {
+  id             String          @id @default(cuid())
+  sessionId      String
+  examDate       DateTime
+  slot           String          // MORNING or AFTERNOON
+  roomId         String?
+  staffId        String
+  role           String          @default("JUNIOR_SUPERVISOR") // OFFICER_IN_CHARGE, SENIOR_SUPERVISOR, JUNIOR_SUPERVISOR, RELIEVER, PEON
+  version        Int             @default(1)
+  isConfirmed    Boolean         @default(false)
+
+  session        ExamSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  room           Room?           @relation(fields: [roomId], references: [id])
+  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  swapRequests   DutySwapRequest[]
+
+  @@unique([sessionId, examDate, slot, staffId])
+  @@index([sessionId, examDate, slot])
+}
+
+model DutySwapRequest {
+  id                 String          @id @default(cuid())
+  dutyId             String
+  requesterStaffId   String
+  targetStaffId      String
+  status             String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  reason             String
+  coordinatorRemarks String?
+  reviewedAt         DateTime?
+
+  duty               SupervisionDuty @relation(fields: [dutyId], references: [id], onDelete: Cascade)
+  requester          Staff           @relation("RequesterStaff", fields: [requesterStaffId], references: [id], onDelete: Cascade)
+  target             Staff           @relation("TargetStaff", fields: [targetStaffId], references: [id], onDelete: Cascade)
+}
+
+model AbsenteeRecord {
+  id             String       @id @default(cuid())
+  sessionId      String
+  paperId        String
+  studentId      String
+  examDate       DateTime
+  slot           String
+  isAbsent       Boolean      @default(true)
+  isUfm          Boolean      @default(false)
+  ufmDetails     String?
+  answerBookNo   String?
+  recordedBy     String
+
+  session        ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  paper          TheoryPaper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, paperId, studentId])
+}
+
+// ---------------------------------------------------------
+// PRACTICAL EXAMS
+// ---------------------------------------------------------
+
+model ExternalExaminer {
+  id             String          @id @default(cuid())
+  instituteId    String
+  name           String
+  collegeName    String
+  phone          String
+  email          String
+  subjects       String          // Comma-separated course codes or names
+  address        String?
+
+  institute      Institute       @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  practicalSlots PracticalSlot[]
+}
+
+model PracticalSlot {
+  id                  String            @id @default(cuid())
+  sessionId           String
+  courseId            String
+  divisionId          String
+  batchId             String
+  roomId              String
+  examDate            DateTime
+  startTime           String            // "10:00 AM"
+  endTime             String            // "01:00 PM"
+  internalExaminerId  String
+  externalExaminerId  String?
+  isLocked            Boolean           @default(false)
+
+  session             ExamSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  course              Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  division            Division          @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  batch               Batch             @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  room                Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  internalExaminer    Staff             @relation("InternalExaminer", fields: [internalExaminerId], references: [id], onDelete: Cascade)
+  externalExaminer    ExternalExaminer? @relation(fields: [externalExaminerId], references: [id])
+
+  @@unique([sessionId, courseId, batchId])
+}
+
+// ---------------------------------------------------------
+// CLASS TESTS & MARKS ENTRY
+// ---------------------------------------------------------
+
+model ClassTest {
+  id             String       @id @default(cuid())
+  sessionId      String
+  courseId       String
+  divisionId     String
+  testNumber     Int          // 1 for CT1, 2 for CT2
+  testDate       DateTime
+  startTime      String       // "10:30 AM"
+  endTime        String       // "11:30 AM"
+  maxMarks       Int          @default(30)
+
+  session        ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  division       Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  marks          Mark[]
+
+  @@unique([sessionId, courseId, divisionId, testNumber])
+}
+
+model Mark {
+  id                 String             @id @default(cuid())
+  sessionId          String
+  studentId          String
+  assessmentHeadId   String
+  classTestId        String?
+  marksObtained      Float              // Supports decimals if needed, or 0
+  status             String             @default("PRESENT") // PRESENT, ABSENT, UFM
+  isLocked           Boolean            @default(false)
+  enteredBy          String
+  updatedAt          DateTime           @updatedAt
+
+  session            ExamSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student            Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assessmentHead     AssessmentHead     @relation(fields: [assessmentHeadId], references: [id], onDelete: Cascade)
+  classTest          ClassTest?         @relation(fields: [classTestId], references: [id])
+
+  @@unique([sessionId, studentId, assessmentHeadId, classTestId])
+  @@index([sessionId, assessmentHeadId])
+}
+
+// ---------------------------------------------------------
+// ATTENDANCE & DETENTION RULES
+// ---------------------------------------------------------
+
+model AttendanceRecord {
+  id                 String       @id @default(cuid())
+  studentId          String
+  courseId           String
+  totalConducted     Int
+  totalAttended      Int
+  percentage         Float
+
+  student            Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course             Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model EligibilityRule {
+  id                 String       @id @default(cuid())
+  instituteId        String
+  minAttendancePct   Float        @default(75.0)
+  enforceFaPrPass    Boolean      @default(true) // FA-PR failure = Detained in semester
+
+  institute          Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------
+// RESULTS & ACCREDITATION
+// ---------------------------------------------------------
+
+model ResultImport {
+  id             String       @id @default(cuid())
+  sessionId      String
+  fileName       String
+  totalRows      Int
+  importedAt     DateTime     @default(now())
+
+  session        ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rows           ResultRow[]
+}
+
+model ResultRow {
+  id                 String       @id @default(cuid())
+  resultImportId     String
+  seatNo             String
+  enrollmentNo       String
+  courseCode         String
+  headType           String
+  marksObtained      Int
+  maxMarks           Int
+  resultStatus       String       // PASS, FAIL, ATKT
+
+  resultImport       ResultImport @relation(fields: [resultImportId], references: [id], onDelete: Cascade)
+
+  @@index([seatNo])
+  @@index([courseCode])
+}
+
+// ---------------------------------------------------------
+// AUDIT LOG & CONFIGURATION
+// ---------------------------------------------------------
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  instituteId    String
+  userId         String?
+  action         String       // "SEATING_GENERATE", "MARKS_UPDATE", "DUTY_SWAP", "STUDENT_IMPORT"
+  entity         String       // "SeatingAllocation", "Mark", "SupervisionDuty"
+  entityId       String?
+  beforeData     String?      // JSON stringified
+  afterData      String?      // JSON stringified
+  createdAt      DateTime     @default(now())
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id])
+
+  @@index([instituteId, createdAt])
+}
+
+model DocumentTemplate {
+  id             String       @id @default(cuid())
+  instituteId    String
+  templateType   String       // "DOOR_CHART", "NOTICE_BOARD", "DUTY_LETTER", "EXAMINER_LETTER"
+  title          String
+  headerHtml     String?
+  footerHtml     String?
+  signatories    String?      // JSON array string
+
+  institute      Institute    @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@unique([instituteId, templateType])
+}
