@@ -1,16 +1,45 @@
-import { MilestonePlaceholder } from "@/components/shared/milestone-placeholder";
+import { requireTenantAuth } from "@/lib/tenant";
+import { withTenant } from "@/lib/prisma";
+import { ReportsHubClient } from "./reports-hub-client";
 
-export default function ReportsPlaceholder() {
-  return (
-    <MilestonePlaceholder
-      title="Official MSBTE Report Pack"
-      milestone="Milestone 4 & 5: Pre-Exam & Post-Exam Reports"
-      description="Template-driven A4 HTML/CSS-to-PDF and Excel exports for all 14+ MSBTE exam centre reports."
-      features={[
-        "Bench Arrangement, Gate Chart, Attendance (Section I/II), Supervisor Report",
-        "Annexure F/G/H, Format-03, Packing Slips, Format 7/8, QP Record",
-        "Merged bulk PDF per session & Excel export",
-      ]}
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function ReportsHubPage() {
+  const session = await requireTenantAuth();
+  const data = await withTenant(session.instituteId, session.isSuperAdmin, async (tx) => {
+    const activeSession = await tx.examSession.findFirst({
+      where: { instituteId: session.instituteId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!activeSession) {
+      return { sessionName: "No Active Session", daySlots: [], staff: [] };
+    }
+
+    const [timetable, staff] = await Promise.all([
+      tx.timetableEntry.findMany({
+        where: { sessionId: activeSession.id },
+        select: { examDay: true, examDate: true, slot: true },
+        distinct: ["examDay", "slot"],
+        orderBy: [{ examDay: "asc" }, { slot: "asc" }],
+      }),
+      tx.staff.findMany({
+        where: { instituteId: activeSession.instituteId },
+        select: { id: true, name: true, department: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    return {
+      sessionName: activeSession.name,
+      daySlots: timetable.map((t) => ({
+        examDay: t.examDay,
+        examDate: t.examDate.toISOString().slice(0, 10),
+        slot: t.slot,
+      })),
+      staff,
+    };
+  });
+
+  return <ReportsHubClient initialData={data} />;
 }
