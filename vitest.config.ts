@@ -5,7 +5,11 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/tests/**/*.test.ts", "src/lib/allocators/**/*.test.ts"],
+    include: [
+      "src/tests/**/*.test.ts",
+      "src/lib/allocators/**/*.test.ts",
+      "src/lib/importers/**/*.test.ts",
+    ],
   },
   resolve: {
     alias: {

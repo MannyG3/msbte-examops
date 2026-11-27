@@ -6,6 +6,11 @@ import Link from "next/link";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import {
+  decodeWindows1252,
+  parseMsbteTimetableCsv,
+  parseMsbteSeatingCsv,
+} from "@/lib/importers/msbte-parsers";
+import {
   Upload,
   ArrowLeft,
   Save,
@@ -79,6 +84,67 @@ export function MsbteImporter({
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (ext === "csv") {
+      if (sourceType === "SEATING_CHART") {
+        file.arrayBuffer().then((buf) => {
+          const text = decodeWindows1252(buf);
+          const parsed = parseMsbteSeatingCsv(text, file.name);
+          if (parsed.rows.length > 0) {
+            const cols = ["seatNo", "instCode", "csm", "subjectCode", "examDate", "slot"];
+            const inferredDate = parsed.inferredDayMonth ? `${parsed.inferredDayMonth}-2026` : "";
+            const rows = parsed.rows.map((r) => ({
+              seatNo: r.seatNo,
+              instCode: r.instCode,
+              csm: r.csm,
+              subjectCode: r.subjectCode,
+              examDate: inferredDate,
+              slot: parsed.inferredSlot || "MORNING",
+            }));
+            handleParsed(cols, rows);
+            return;
+          }
+          Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (res) => {
+              if (res.meta.fields && res.data.length > 0) {
+                handleParsed(res.meta.fields, res.data);
+              }
+            },
+          });
+        });
+        return;
+      }
+
+      if (sourceType === "TIMETABLE") {
+        file.text().then((text) => {
+          const parsed = parseMsbteTimetableCsv(text);
+          if (parsed.rows.length > 0) {
+            const cols = ["examDay", "examDate", "slot", "timeRange", "subjectCode", "subjectName", "csm"];
+            const rows = parsed.rows.map((r) => ({
+              examDay: r.examDay,
+              examDate: r.examDate,
+              slot: r.slot,
+              timeRange: r.timeRange,
+              subjectCode: r.subjectCode,
+              subjectName: r.subjectName,
+              csm: r.csm,
+            }));
+            handleParsed(cols, rows);
+            return;
+          }
+          Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (res) => {
+              if (res.meta.fields && res.data.length > 0) {
+                handleParsed(res.meta.fields, res.data);
+              }
+            },
+          });
+        });
+        return;
+      }
+
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
