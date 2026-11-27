@@ -54,3 +54,29 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+
+-- Section 7 tables RLS
+ALTER TABLE "Examiner" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Examiner" FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_examiner ON "Examiner"
+  USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
+  WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');
+
+ALTER TABLE "PracticalSlot" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PracticalSlot" FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_practical_slot ON "PracticalSlot"
+  USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
+  WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');
+
+ALTER TABLE "ClassTestMark" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ClassTestMark" FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_class_test_mark ON "ClassTestMark"
+  USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
+  WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');
+
+ALTER TABLE "ResultRecord" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ResultRecord" FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_result_record ON "ResultRecord"
+  USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
+  WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');

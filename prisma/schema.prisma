@@ -626,3 +626,81 @@ model GeneratedReport {
 
   @@index([instituteId, createdAt])
 }
+
+// =========================================================
+// SECTION 7: PRACTICALS, CLASS TESTS & RESULTS
+// =========================================================
+
+model Examiner {
+  id            String          @id @default(cuid())
+  instituteId   String
+  name          String
+  designation   String
+  instituteName String
+  phone         String?
+  email         String?
+  subjectCode   String
+  type          String          @default("EXTERNAL") // EXTERNAL, INTERNAL
+  createdAt     DateTime        @default(now())
+
+  internalSlots PracticalSlot[] @relation("InternalExaminer")
+  externalSlots PracticalSlot[] @relation("ExternalExaminer")
+
+  @@index([instituteId])
+}
+
+model PracticalSlot {
+  id                 String    @id @default(cuid())
+  instituteId        String
+  sessionId          String
+  csm                String
+  subjectCode        String
+  batchName          String
+  labName            String
+  examDate           DateTime  @db.Date
+  timeSlot           String    // e.g. "10:00 AM - 12:00 PM"
+  internalExaminerId String?
+  externalExaminerId String?
+  createdAt          DateTime  @default(now())
+
+  internalExaminer   Examiner? @relation("InternalExaminer", fields: [internalExaminerId], references: [id])
+  externalExaminer   Examiner? @relation("ExternalExaminer", fields: [externalExaminerId], references: [id])
+
+  @@index([instituteId, sessionId, examDate])
+}
+
+model ClassTestMark {
+  id            String   @id @default(cuid())
+  instituteId   String
+  sessionId     String
+  csm           String
+  subjectCode   String
+  seatNo        String
+  ct1Marks      Int?
+  ct2Marks      Int?
+  ct1Absent     Boolean  @default(false)
+  ct2Absent     Boolean  @default(false)
+  faThAvg       Float    @default(0)
+  attendancePct Float    @default(100)
+  isDetained    Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sessionId, subjectCode, seatNo])
+  @@index([instituteId, sessionId])
+}
+
+model ResultRecord {
+  id          String   @id @default(cuid())
+  instituteId String
+  sessionId   String
+  seatNo      String
+  csm         String
+  subjectCode String
+  marks       Int
+  maxMarks    Int      @default(100)
+  status      String   // PASS, FAIL, ATKT
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId, subjectCode, seatNo])
+  @@index([instituteId, sessionId])
+}

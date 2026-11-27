@@ -66,6 +66,16 @@ export function AppSidebar({ userRole }: SidebarProps) {
         { name: "Audit Trail", href: "/settings/audit-logs", icon: History },
       ],
     },
+    {
+      label: "Section 7 Modules",
+      items: [
+        { name: "Practicals & Examiners", href: "/practicals/examiners", icon: CalendarDays },
+        { name: "Class Tests (FA-TH)", href: "/class-tests", icon: BookOpen },
+        { name: "Results Analysis", href: "/results", icon: Sparkles },
+        { name: "Remuneration Bills", href: "/remuneration", icon: FileText },
+        { name: "Student Seat Lookup", href: "/student-lookup", icon: Users },
+      ],
+    },
   ];
 
   return (
