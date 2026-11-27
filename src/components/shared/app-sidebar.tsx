@@ -56,6 +56,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
         { name: "Bench Arrangement", href: "/bench-arrangement", icon: Grid },
         { name: "Supervisor Duties", href: "/supervision/allocate", icon: ShieldCheck },
         { name: "Exam Day Console", href: "/exam-day", icon: Sparkles },
+        { name: "Day QP Receipts", href: "/receipts", icon: FileText },
         { name: "Official Report Pack", href: "/reports", icon: FileText },
       ],
     },

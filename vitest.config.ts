@@ -9,6 +9,7 @@ export default defineConfig({
       "src/tests/**/*.test.ts",
       "src/lib/allocators/**/*.test.ts",
       "src/lib/importers/**/*.test.ts",
+      "src/lib/docx/**/*.test.ts",
     ],
   },
   resolve: {

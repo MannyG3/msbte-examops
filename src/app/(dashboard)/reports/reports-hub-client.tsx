@@ -129,7 +129,13 @@ export function ReportsHubClient({
             reports & Excel/CSV exports
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={`/api/reports/docx?key=PRINT_PACK&day=${day}&slot=${slot}&output=zip`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Download className="w-3.5 h-3.5" /> Download Print Pack (.zip .docx)
+          </a>
           <label className="text-xs font-medium text-slate-600">Day & Slot:</label>
           <select
             value={selectedSlot}
