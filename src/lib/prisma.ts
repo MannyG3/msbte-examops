@@ -17,9 +17,12 @@ export async function withTenant<T>(
   isSuperAdmin: boolean,
   fn: (tx: Prisma.TransactionClient) => Promise<T>
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.current_institute_id', ${instituteId ?? ""}, true)`;
-    await tx.$executeRaw`SELECT set_config('app.is_super_admin', ${isSuperAdmin ? "true" : "false"}, true)`;
-    return fn(tx);
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_institute_id', ${instituteId ?? ""}, true)`;
+      await tx.$executeRaw`SELECT set_config('app.is_super_admin', ${isSuperAdmin ? "true" : "false"}, true)`;
+      return fn(tx);
+    },
+    { maxWait: 10000, timeout: 30000 }
+  );
 }
