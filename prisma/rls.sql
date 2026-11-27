@@ -80,3 +80,9 @@ ALTER TABLE "ResultRecord" FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation_result_record ON "ResultRecord"
   USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
   WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');
+
+ALTER TABLE "DayReceipt" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "DayReceipt" FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_day_receipt ON "DayReceipt"
+  USING ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true')
+  WITH CHECK ("instituteId" = current_setting('app.current_institute_id', true) OR current_setting('app.is_super_admin', true) = 'true');

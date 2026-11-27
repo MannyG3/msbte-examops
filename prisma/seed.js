@@ -353,6 +353,122 @@ async function main() {
   await prisma.qPInventory.createMany({ data: qpRows });
 
   console.log(`✓ Demo Centre 9999 seeded: 30 blocks, 60 staff, ${timetableEntries.length} timetable entries, ${allCandidates.length} candidates, ${candidatePapers.length} candidate-papers.`);
+
+  // =========================================================
+  // TENANT #1: RIT POLYTECHNIC, LOHAGAON, PUNE (CODE 1227)
+  // =========================================================
+  let ritInst = await prisma.institute.findUnique({ where: { code: '1227' } });
+  if (!ritInst) {
+    ritInst = await prisma.institute.create({
+      data: {
+        code: '1227',
+        examCentreCode: '1227',
+        name: "K.E. Society's Rajarambapu Institute of Technology (Polytechnic), Lohagaon",
+        nameUpper: "K.E.SOCIETY'S RAJARAMBAPU INSTITUTE OF TECHNOLOGY (POLYTECHNIC),Pune",
+        nameTitleCase: "K.E. Society's Rajarambapu Institute of Technology (Polytechnic), Lohagaon",
+        region: 'Pune',
+        regionCode: '5002',
+        address: 'Lohagaon, Pune - 411047, Maharashtra',
+        dcCode: '0710',
+        dcName: "Jayawant Shikshan Prasarak Mandal's Bhivrabai Sawant Polytechnic, Wagholi",
+        oicFullName: 'Javed Babubhai Shaikh',
+        oicShortName: 'J. B. Shaikh',
+        oicPhone: '9822001227',
+        morningOpenTime: '09:10 AM',
+        afternoonOpenTime: '01:40 PM',
+        receiptTime: '08:15 AM',
+        principalName: 'Principal, RIT Polytechnic',
+        contactPerson: 'Javed Babubhai Shaikh',
+        contactEmail: 'oic@rit1227.ac.in',
+        planId: standardPlan?.id || trialPlan.id,
+        status: 'ACTIVE',
+        validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        isDemo: false,
+        dpaAcceptedAt: new Date(),
+        dpaAcceptedBy: 'oic@rit1227.ac.in',
+        onboardingDone: true,
+      },
+    });
+
+    const ritOic = await prisma.user.upsert({
+      where: { email: 'oic@rit1227.ac.in' },
+      update: {},
+      create: { email: 'oic@rit1227.ac.in', passwordHash, name: 'Javed Babubhai Shaikh' },
+    });
+    await prisma.membership.create({
+      data: { instituteId: ritInst.id, userId: ritOic.id, role: 'OFFICER_IN_CHARGE' },
+    });
+
+    const ritBlocks = [
+      { blockNo: 1, roomNo: 'G09', benchLabel: '-G 09 DH-1', gateLocation: 'G09-DH1', shortRoom: 'G09' },
+      { blockNo: 2, roomNo: 'G10', benchLabel: '-G 10 DH-2', gateLocation: 'G10-DH2', shortRoom: 'G10' },
+      { blockNo: 3, roomNo: 'G11', benchLabel: '-G 11', gateLocation: 'G11', shortRoom: 'G11' },
+      { blockNo: 4, roomNo: 'F01', benchLabel: '-F 01', gateLocation: 'F01', shortRoom: 'F01' },
+      { blockNo: 5, roomNo: 'F02', benchLabel: '-F 02', gateLocation: 'F02', shortRoom: 'F02' },
+      { blockNo: 6, roomNo: 'F03', benchLabel: '-F 03', gateLocation: 'F03', shortRoom: 'F03' },
+      { blockNo: 7, roomNo: 'F04', benchLabel: '-F 04', gateLocation: 'F04', shortRoom: 'F04' },
+      { blockNo: 8, roomNo: 'F-11', benchLabel: '-F-11', gateLocation: 'F-11', shortRoom: 'F-11' },
+    ];
+
+    for (const b of ritBlocks) {
+      const rm = await prisma.room.create({
+        data: { instituteId: ritInst.id, roomNo: b.roomNo, building: 'Main Building', floor: b.blockNo <= 3 ? 0 : 1 },
+      });
+      await prisma.block.create({
+        data: {
+          instituteId: ritInst.id,
+          blockNo: b.blockNo,
+          roomId: rm.id,
+          benchLabel: b.benchLabel,
+          gateLocation: b.gateLocation,
+          shortRoom: b.shortRoom,
+          columns: 4,
+          columnBreak: 9,
+          strength: 36,
+          numberingStyle: 'SERPENTINE',
+        },
+      });
+    }
+
+    const ritSchemes = {};
+    for (const sName of ['K', 'I']) {
+      ritSchemes[sName] = await prisma.scheme.create({
+        data: { instituteId: ritInst.id, name: sName, isActive: true },
+      });
+    }
+
+    const seededSubjects = [
+      { code: '22204', name: 'CONSTRUCTION MATERIALS', abbr: 'CMA', scheme: 'I' },
+      { code: '22207', name: 'ENGINEERING DRAWING', abbr: 'EDR', scheme: 'I' },
+      { code: '313303', name: 'DIGITAL TECHNIQUES', abbr: 'DTE', scheme: 'K' },
+      { code: '311303', name: 'COMMUNICATION SKILLS', abbr: 'ENG', scheme: 'K' },
+    ];
+    for (const sub of seededSubjects) {
+      await prisma.subject.create({
+        data: {
+          instituteId: ritInst.id,
+          schemeId: ritSchemes[sub.scheme].id,
+          code: sub.code,
+          name: sub.name,
+          abbreviation: sub.abbr,
+          hasSections: false,
+        },
+      });
+    }
+
+    await prisma.examSession.create({
+      data: {
+        instituteId: ritInst.id,
+        code: 'W26',
+        name: 'Winter-2026',
+        theoryStartDate: new Date('2026-11-17T00:00:00.000Z'),
+        theoryEndDate: new Date('2026-12-09T00:00:00.000Z'),
+        status: 'ACTIVE',
+      },
+    });
+
+    console.log('✓ RIT Polytechnic (Centre 1227) seeded with 8 blocks, 4 core abbreviations, and Winter-2026 session.');
+  }
 }
 
 main()

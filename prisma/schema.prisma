@@ -48,16 +48,27 @@ model Plan {
 
 model Institute {
   id                String       @id @default(cuid())
-  code              String       @unique // Institute code e.g. "0018"
+  code              String       @unique // Institute code e.g. "0018", "1227"
   examCentreCode    String?      // Exam Centre Code e.g. "1227", "9999"
   name              String
+  nameUpper         String?      // Verbatim uppercase name for Bench Arrangement & Gate Chart
+  nameTitleCase     String?      // Verbatim title-case name for Supervisor Report
   region            String       // Pune, Mumbai, Nagpur, Chh. Sambhaji Nagar
+  regionCode        String       @default("5002")
   address           String
   logoUrl           String?
   principalName     String?
   contactPerson     String?
   contactPhone      String?
   contactEmail      String?
+  dcCode            String       @default("0710")
+  dcName            String?
+  oicFullName       String?
+  oicShortName      String?
+  oicPhone          String?
+  morningOpenTime   String       @default("09:10 AM")
+  afternoonOpenTime String       @default("01:40 PM")
+  receiptTime       String       @default("08:15 AM")
   planId            String?
   status            TenantStatus @default(PENDING_APPROVAL)
   trialEndsAt       DateTime?
@@ -360,6 +371,9 @@ model Block {
   instituteId    String
   blockNo        Int                // 1, 2, ... 8
   roomId         String
+  benchLabel     String?            // e.g. "-G 09 DH-1"
+  gateLocation   String?            // e.g. "G09-DH1"
+  shortRoom      String?            // e.g. "G09"
   columns        Int                @default(4) // e.g. 4
   columnBreak    Int                @default(9) // e.g. 9 -> strength = 36
   strength       Int                @default(36)
@@ -605,6 +619,7 @@ model ReportTemplate {
   version     Int       @default(1)
   html        String    @db.Text
   css         String?   @db.Text
+  docxBase64  String?   @db.Text
   isActive    Boolean   @default(true)
   updatedAt   DateTime  @updatedAt
 
@@ -702,5 +717,21 @@ model ResultRecord {
   createdAt   DateTime @default(now())
 
   @@unique([sessionId, subjectCode, seatNo])
+  @@index([instituteId, sessionId])
+}
+
+model DayReceipt {
+  id                String   @id @default(cuid())
+  instituteId       String
+  sessionId         String
+  examDay           Int
+  controllerName    String
+  morningOpenTime   String   @default("09:10 AM")
+  afternoonOpenTime String   @default("01:40 PM")
+  receiptTime       String   @default("08:15 AM")
+  actualRowsJson    Json?
+  updatedAt         DateTime @updatedAt
+
+  @@unique([sessionId, examDay])
   @@index([instituteId, sessionId])
 }
