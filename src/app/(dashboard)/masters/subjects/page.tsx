@@ -1,15 +1,21 @@
-import { MilestonePlaceholder } from "@/components/shared/milestone-placeholder";
+import { requireTenantAuth } from "@/lib/tenant";
+import { withTenant } from "@/lib/prisma";
+import { SubjectsClient } from "./subjects-client";
 
-export default function SubjectsPlaceholder() {
+export default async function SubjectsPage() {
+  const session = await requireTenantAuth();
+
+  const subjects = await withTenant(session.instituteId, session.isSuperAdmin, async (tx) => {
+    return tx.subject.findMany({
+      where: { instituteId: session.instituteId },
+      include: { scheme: true },
+      orderBy: [{ scheme: { name: "desc" } }, { code: "asc" }],
+    });
+  });
+
   return (
-    <MilestonePlaceholder
-      title="Subjects & Schemes (K / I)"
-      milestone="Milestone 2: Masters & Imports"
-      description="Manage K-scheme (6-digit) and I-scheme (5-digit) subjects, abbreviations, and the Section I/II two-answer-book flag."
-      features={[
-        "Multi-scheme support (K, I, and future schemes)",
-        "Per-subject Section I & II flag (2 main answer books & separate attendance reports)",
-      ]}
-    />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <SubjectsClient subjects={JSON.parse(JSON.stringify(subjects))} />
+    </div>
   );
 }

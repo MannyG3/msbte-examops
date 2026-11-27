@@ -1,16 +1,20 @@
-import { MilestonePlaceholder } from "@/components/shared/milestone-placeholder";
+import { requireTenantAuth } from "@/lib/tenant";
+import { withTenant } from "@/lib/prisma";
+import { StaffClient } from "./staff-client";
 
-export default function StaffPlaceholder() {
+export default async function StaffPage() {
+  const session = await requireTenantAuth();
+
+  const staff = await withTenant(session.instituteId, session.isSuperAdmin, async (tx) => {
+    return tx.staff.findMany({
+      where: { instituteId: session.instituteId },
+      orderBy: [{ type: "asc" }, { department: "asc" }, { name: "asc" }],
+    });
+  });
+
   return (
-    <MilestonePlaceholder
-      title="Staff & Invigilator Master"
-      milestone="Milestone 2: Masters & Imports"
-      description="Manage teaching faculty, lab assistants, and peons with subjects taught, max duties per session, and unavailable dates."
-      features={[
-        "Teaching, Lab Assistant, and Peon categories",
-        "Subjects taught mapping for self-subject conflict avoidance",
-        "Max duties and unavailable dates per session",
-      ]}
-    />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <StaffClient staff={JSON.parse(JSON.stringify(staff))} />
+    </div>
   );
 }

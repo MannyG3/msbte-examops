@@ -1,16 +1,21 @@
-import { MilestonePlaceholder } from "@/components/shared/milestone-placeholder";
+import { requireTenantAuth } from "@/lib/tenant";
+import { withTenant } from "@/lib/prisma";
+import { RoomsBlocksClient } from "./rooms-blocks-client";
 
-export default function RoomsBlocksPlaceholder() {
+export default async function RoomsBlocksPage() {
+  const session = await requireTenantAuth();
+
+  const blocks = await withTenant(session.instituteId, session.isSuperAdmin, async (tx) => {
+    return tx.block.findMany({
+      where: { instituteId: session.instituteId },
+      include: { room: true },
+      orderBy: { blockNo: "asc" },
+    });
+  });
+
   return (
-    <MilestonePlaceholder
-      title="Rooms & Blocks Master"
-      milestone="Milestone 2: Masters & Imports"
-      description="Configure physical rooms (e.g. F-11) and numbered seating blocks (Block NO: 8) with columns × column break and serpentine/straight numbering."
-      features={[
-        "Separate Block NO and physical Room No fields",
-        "Configurable columns × column break (e.g. 4 × 9 = 36 strength)",
-        "Serpentine bench numbering (default) or Straight numbering",
-      ]}
-    />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <RoomsBlocksClient blocks={JSON.parse(JSON.stringify(blocks))} />
+    </div>
   );
 }
