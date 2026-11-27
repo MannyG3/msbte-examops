@@ -2,12 +2,13 @@ import { prisma } from "./prisma";
 
 interface LogActionParams {
   instituteId: string;
-  userId?: string;
+  userId?: string | null;
   action: string;
   entity: string;
-  entityId?: string;
-  beforeData?: any;
-  afterData?: any;
+  entityId?: string | null;
+  reason?: string | null;
+  beforeData?: unknown;
+  afterData?: unknown;
 }
 
 export async function logAuditAction({
@@ -16,6 +17,7 @@ export async function logAuditAction({
   action,
   entity,
   entityId,
+  reason,
   beforeData,
   afterData,
 }: LogActionParams) {
@@ -27,8 +29,9 @@ export async function logAuditAction({
         action,
         entity,
         entityId: entityId || null,
-        beforeData: beforeData ? JSON.stringify(beforeData) : null,
-        afterData: afterData ? JSON.stringify(afterData) : null,
+        reason: reason || null,
+        beforeData: beforeData ? (beforeData as any) : undefined,
+        afterData: afterData ? (afterData as any) : undefined,
       },
     });
   } catch (error) {

@@ -7,12 +7,16 @@ const SECRET_KEY = new TextEncoder().encode(
 
 export interface SessionPayload {
   userId: string;
-  instituteId: string;
   email: string;
   name: string;
+  isSuperAdmin: boolean;
+  instituteId: string | null;
+  instituteCode: string | null;
+  instituteName: string | null;
+  examCentreCode: string | null;
   role: string;
-  instituteCode: string;
-  instituteName: string;
+  impersonationLogId?: string;
+  impersonatedByEmail?: string;
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
@@ -47,7 +51,7 @@ export async function setSessionCookie(payload: SessionPayload) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 
