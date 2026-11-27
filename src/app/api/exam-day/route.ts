@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withTenant } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAuditAction } from "@/lib/audit";
+import { assertTenantWritable } from "@/lib/plan-guard";
 
 async function ensureSpecialCode(tx: any, instituteId: string, code: string, label: string) {
   const existing = await tx.specialCode.findFirst({
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
     const instId = session.instituteId;
 
     const result = await withTenant(instId, session.isSuperAdmin, async (tx) => {
+      await assertTenantWritable(tx, instId);
       const activeSession = await tx.examSession.findFirst({
         where: { instituteId: instId },
         orderBy: { createdAt: "desc" },

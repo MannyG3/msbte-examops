@@ -9,6 +9,7 @@ import {
   BenchAllocationResult,
 } from "@/lib/allocators/bench-allocator";
 import { logAuditAction } from "@/lib/audit";
+import { assertTenantWritable } from "@/lib/plan-guard";
 
 export async function POST(req: Request) {
   try {
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     const instId = session.instituteId;
 
     const outcome = await withTenant(instId, session.isSuperAdmin, async (tx) => {
+      await assertTenantWritable(tx, instId);
       const activeSession = await tx.examSession.findFirst({
         where: { instituteId: instId },
         orderBy: { createdAt: "desc" },
