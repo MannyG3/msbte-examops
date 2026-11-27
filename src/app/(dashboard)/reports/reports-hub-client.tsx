@@ -68,6 +68,55 @@ export function ReportsHubClient({
     { key: "ANNEXURE_G", label: "Annexure G — QP Custody Log" },
     { key: "ANNEXURE_H", label: "Annexure H — Dispatch Summary" },
     { key: "FORMAT_03", label: "Format-03 — Candidate Undertaking" },
+    { key: "FORMAT_7", label: "Format 7 — Absentee & UFM Consolidation" },
+    { key: "FORMAT_8", label: "Format 8 — Answer Book Forwarding Memo" },
+  ];
+
+  const postExamReports = [
+    {
+      title: "9. Packing Slips & Attendance Report A",
+      desc: "Paper-wise packing summary with Present, Absent, Detained & Copy Case counts.",
+      href: `/reports/packing-slips?day=${day}&slot=${slot}`,
+      exportType: "packing-slips",
+    },
+    {
+      title: "11. Question Paper Record",
+      desc: "Per-paper Received, Used, Returned, Extra & Less counts.",
+      href: `/reports/qp-record?day=${day}&slot=${slot}`,
+    },
+    {
+      title: "12. Seat Number Status Report",
+      desc: "Each seat number's status (Present, Absent, Detained, Copy Case).",
+      href: `/reports/seat-status?day=${day}&slot=${slot}`,
+      exportType: "seat-status",
+    },
+    {
+      title: "13. Present / Absent Count Summary",
+      desc: "Per C-S-M count summary for regional office queries.",
+      href: `/reports/pa-summary?day=${day}&slot=${slot}`,
+      exportType: "pa-summary",
+    },
+    {
+      title: "14. Marksheet Number Report",
+      desc: "Imported theory marksheet numbers, marks, and status.",
+      href: `/reports/marksheets`,
+      exportType: "marksheets",
+    },
+    {
+      title: "Early Leaving Record",
+      desc: "Seat number, C-S-M, time out, and supervisor signature.",
+      href: `/reports/early-leaving?day=${day}&slot=${slot}`,
+    },
+    {
+      title: "Answer Book & Stationery Record",
+      desc: "Per block Main, Supplement, Drawing & Graph sheets provided vs used.",
+      href: `/reports/answer-books?day=${day}&slot=${slot}`,
+    },
+    {
+      title: "Copy Case (UFM) Report",
+      desc: "Detailed copy case statements and seized material records.",
+      href: `/reports/copy-cases?day=${day}&slot=${slot}`,
+    },
   ];
 
   return (
@@ -175,6 +224,45 @@ export function ReportsHubClient({
               </Link>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Post-Exam & Supporting Records */}
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">
+          Post-Absentee, Post-Exam & Supporting Records (Day {day} · {slot})
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {postExamReports.map((r) => (
+            <div
+              key={r.title}
+              className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between gap-4"
+            >
+              <div>
+                <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm">
+                  <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                  {r.title}
+                </div>
+                <p className="text-xs text-slate-500 mt-1.5">{r.desc}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={r.href}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Open / Print
+                </Link>
+                {r.exportType && (
+                  <a
+                    href={`/api/reports/export?type=${r.exportType}&day=${day}&slot=${slot}`}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg hover:bg-emerald-100"
+                  >
+                    <Download className="w-3.5 h-3.5" /> CSV
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

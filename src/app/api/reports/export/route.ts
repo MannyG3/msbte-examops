@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getPreExamSlotData, formatMsbteDate } from "@/lib/reports/pre-exam-data";
+import { getPostExamSlotData } from "@/lib/reports/post-exam-data";
 import { withTenant } from "@/lib/prisma";
 
 function csvCell(val: unknown): string {
@@ -50,6 +51,42 @@ export async function GET(req: Request) {
           d.staff.department,
           d.staff.designation,
         ]);
+      }
+    } else if (type === "packing-slips" || type === "pa-summary" || type === "seat-status" || type === "marksheets") {
+      const post = await getPostExamSlotData(day, slot);
+      if (type === "marksheets") {
+        filename = `marksheets.csv`;
+        rows.push(["Seat No", "Subject Code", "Marksheet No", "Marks", "Status"]);
+        for (const m of post.marksheets) {
+          rows.push([m.seatNo, m.subjectCode, m.marksheetNo, String(m.marks ?? ""), m.status ?? ""]);
+        }
+      } else if (type === "seat-status") {
+        rows.push(["Seat No", "C-S-M", "Subject Code", "Status"]);
+        for (const e of post.entries) {
+          for (const p of e.papers) {
+            const st = p.statuses.find((s) => s.section === 1) ?? p.statuses[0];
+            const isDet = p.isDetained || p.candidate.isDetained;
+            rows.push([
+              p.candidate.seatNo,
+              e.csm,
+              e.subject.code,
+              isDet ? "DETAINED" : st?.specialCode.label ?? "Present",
+            ]);
+          }
+        }
+      } else {
+        rows.push(["C-S-M", "Subject Code", "Subject Name", "Allotted", "Present", "Absent", "Detained", "Copy Case"]);
+        for (const e of post.entries) {
+          let pr = 0, ab = 0, det = 0, cc = 0;
+          for (const p of e.papers) {
+            const st = p.statuses.find((s) => s.section === 1) ?? p.statuses[0];
+            if (p.isDetained || p.candidate.isDetained) det++;
+            else if (st?.specialCode.code === "AB") ab++;
+            else if (st?.specialCode.code === "CC") { cc++; pr++; }
+            else pr++;
+          }
+          rows.push([e.csm, e.subject.code, e.subject.name, String(e.papers.length), String(pr), String(ab), String(det), String(cc)]);
+        }
       }
     } else {
       const data = await getPreExamSlotData(day, slot);

@@ -69,4 +69,39 @@ export const DEFAULT_REPORT_TEMPLATES: Record<string, { title: string; html: str
   </div>
 </div>`,
   },
+  FORMAT_7: {
+    title: "Format 7 — Daily Absentee & UFM Consolidation Statement",
+    css: ".msbte-table { width:100%; border-collapse:collapse; font-size:11px; margin-top:12px; } .msbte-table th, .msbte-table td { border:1px solid #000; padding:6px; }",
+    html: `<div>
+  <h2 style="text-align:center;font-weight:bold;">MAHARASHTRA STATE BOARD OF TECHNICAL EDUCATION, MUMBAI</h2>
+  <h3 style="text-align:center;font-weight:bold;">FORMAT - 7 : CONSOLIDATED ABSENTEE & COPY CASE STATEMENT</h3>
+  <p style="margin-top:10px;font-size:12px;"><strong>Centre:</strong> {{centreCode}} - {{instituteName}} | <strong>Session:</strong> {{sessionName}} | <strong>Date:</strong> {{date}}</p>
+  <table class="msbte-table">
+    <thead><tr><th>Sr.</th><th>Subject Code</th><th>C-S-M</th><th>Allotted</th><th>Present</th><th>Absent</th><th>Copy Case</th></tr></thead>
+    <tbody>
+      <tr><td style="height:28px;">1</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td style="height:28px;">2</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  <div style="display:flex;justify-content:space-between;margin-top:48px;font-size:12px;">
+    <div>_________________________<br/><strong>Data Entry / Clerk</strong></div>
+    <div>_________________________<br/><strong>Officer In-Charge</strong></div>
+  </div>
+</div>`,
+  },
+  FORMAT_8: {
+    title: "Format 8 — Answer Book Bundle Forwarding Memo",
+    css: ".msbte-box { border: 1px solid #000; padding: 14px; font-size: 12px; line-height: 1.6; }",
+    html: `<div class="msbte-box">
+  <h2 style="text-align:center;font-weight:bold;">MAHARASHTRA STATE BOARD OF TECHNICAL EDUCATION, MUMBAI</h2>
+  <h3 style="text-align:center;font-weight:bold;">FORMAT - 8 : ANSWER BOOK BUNDLE FORWARDING MEMO</h3>
+  <p style="margin-top:10px;"><strong>Centre:</strong> {{centreCode}} - {{instituteName}} | <strong>Session:</strong> {{sessionName}} | <strong>Date:</strong> {{date}}</p>
+  <p style="margin-top:12px;">To, The Officer In-Charge, RAC / RBTE, MSBTE.</p>
+  <p>Please find enclosed sealed bundles of written Answer Books for today's theory examination as verified against Attendance Report "A".</p>
+  <div style="display:flex;justify-content:space-between;margin-top:56px;">
+    <div>_________________________<br/><strong>Dispatch Clerk</strong></div>
+    <div>_________________________<br/><strong>Officer In-Charge (Exam)</strong></div>
+  </div>
+</div>`,
+  },
 };
